@@ -1,3 +1,3 @@
 package crawler
 
-var crawlHostname string
+var CrawlHostname string
