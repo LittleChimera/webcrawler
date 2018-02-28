@@ -66,7 +66,7 @@ func TestSinglePageCrawlLinksResults(t *testing.T) {
 	defer ctrl.Finish()
 
 	const host = "lipsum.com"
-	crawler := NewCrawler(&client)
+	crawler := NewCrawler(client)
 	crawledNodes := crawler.crawlPageLinks(host)
 
 	var internalLinksCount int
@@ -84,7 +84,7 @@ func TestSinglePageCrawlResourcesResults(t *testing.T) {
 	defer ctrl.Finish()
 
 	const host = "lipsum.com"
-	crawler := NewCrawler(&client)
+	crawler := NewCrawler(client)
 	crawledNodes := crawler.crawlPageResources(host)
 
 	var internalResourcesCount int
@@ -112,7 +112,7 @@ func TestCrawlSiteLoop(t *testing.T) {
 
 	var client http.Client
 	client = mockClient
-	crawler := NewCrawler(&client)
+	crawler := NewCrawler(client)
 	crawledPages := crawler.CrawlSite(host)
 
 	tutil.Assert(t, 3, len(crawledPages))

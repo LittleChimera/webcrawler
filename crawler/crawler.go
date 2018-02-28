@@ -2,7 +2,6 @@ package crawler
 
 import (
 	"bytes"
-	"fmt"
 	"net/url"
 	"strings"
 
@@ -77,11 +76,11 @@ func readNode(elemBody string) *Node {
 }
 
 type Crawler struct {
-	client       *http.Client
+	client       http.Client
 	visitedPages map[Node]bool
 }
 
-func NewCrawler(client *http.Client) *Crawler {
+func NewCrawler(client http.Client) *Crawler {
 	return &Crawler{
 		client:       client,
 		visitedPages: make(map[Node]bool),
@@ -97,7 +96,7 @@ func (c *Crawler) crawlPageResources(url string) []Node {
 }
 
 func (c *Crawler) crawlPage(url string, tags ...string) []Node {
-	pageBody := (*c.client).Get(url)
+	pageBody := c.client.Get(url)
 	decoder := html.NewTokenizer(bytes.NewBufferString(pageBody))
 	nodeSet := make(map[Node]bool)
 	decoder.Next()
@@ -138,9 +137,8 @@ func (c *Crawler) CrawlSite(url string) []Page {
 }
 
 func (c *Crawler) CrawlNode(pageNode *Node) []Page {
-	fmt.Println(pageNode.URL())
 	var pages []Page
-	if c.visitedPages[*pageNode] {
+	if c.visitedPages[*pageNode] || pageNode.Host != CrawlHostname {
 		return pages
 	}
 	c.visitedPages[*pageNode] = true

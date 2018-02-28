@@ -3,6 +3,7 @@ package http
 import (
 	"io/ioutil"
 	"net/http"
+	"strings"
 )
 
 type Client interface {
@@ -11,7 +12,10 @@ type Client interface {
 
 type SimpleClient struct{}
 
-func (s *SimpleClient) Get(url string) string {
+func (s SimpleClient) Get(url string) string {
+	if !strings.HasPrefix(url, "http") {
+		url = "https://" + url
+	}
 	response, err := http.Get(url)
 	if err != nil {
 		return ""
