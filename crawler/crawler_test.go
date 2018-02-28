@@ -33,10 +33,20 @@ func TestReadSrcLink(t *testing.T) {
 
 	tutil.Assert(t, url, srcLink(hrefElement))
 }
-func TestCompareEqualNodes(t *testing.T) {
+func TestCompareEqualLinkNodes(t *testing.T) {
 	node1 := readNode(fmt.Sprintf(hrefElemTemplate, "http://lipsum.com/some/page"))
 	node2 := readNode(fmt.Sprintf(hrefElemTemplate, "lipsum.com/some/page"))
 	node3 := readNode(fmt.Sprintf(hrefElemTemplate, "/some/page"))
+
+	tutil.Assert(t, *node1, *node2)
+	tutil.Assert(t, *node1, *node3)
+	tutil.Assert(t, *node2, *node3)
+}
+
+func TestCompareEqualResourceNodes(t *testing.T) {
+	node1 := readNode(fmt.Sprintf(`<img src="%v" />`, "http://lipsum.com/some/image.png"))
+	node2 := readNode(fmt.Sprintf(`<link href="%v" />`, "lipsum.com/some/image.png"))
+	node3 := readNode(fmt.Sprintf(`<script src="%v" />`, "/some/image.png"))
 
 	tutil.Assert(t, *node1, *node2)
 	tutil.Assert(t, *node1, *node3)
@@ -67,4 +77,22 @@ func TestSinglePageCrawlLinksResults(t *testing.T) {
 	}
 	tutil.Assert(t, 4, internalLinksCount)
 	tutil.Assert(t, 51, len(crawledNodes)-internalLinksCount)
+}
+
+func TestSinglePageCrawlResourcesResults(t *testing.T) {
+	client, ctrl := mockClient(t)
+	defer ctrl.Finish()
+
+	const host = "lipsum.com"
+	crawler := NewCrawler(&client)
+	crawledNodes := crawler.crawlPageResources(host)
+
+	var internalResourcesCount int
+	for _, node := range crawledNodes {
+		if node.Host == host {
+			internalResourcesCount++
+		}
+	}
+	tutil.Assert(t, 9, internalResourcesCount)
+	tutil.Assert(t, 1, len(crawledNodes)-internalResourcesCount)
 }

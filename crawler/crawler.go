@@ -38,7 +38,19 @@ type Node struct {
 }
 
 func readNode(elemBody string) *Node {
-	bodyURL := hrefLink(elemBody)
+	decoder := html.NewTokenizer(bytes.NewBufferString(elemBody))
+	decoder.Next()
+	tagName, _ := decoder.TagName()
+
+	var bodyURL string
+
+	switch string(tagName) {
+	case "img", "script":
+		bodyURL = srcLink(elemBody)
+	case "link", "a":
+		bodyURL = hrefLink(elemBody)
+	}
+
 	if strings.HasPrefix(bodyURL, "/") {
 		bodyURL = CrawlHostname + bodyURL
 	}
@@ -56,8 +68,7 @@ func readNode(elemBody string) *Node {
 }
 
 type Crawler struct {
-	client       *http.Client
-	visitedNodes map[Node]bool
+	client *http.Client
 }
 
 func NewCrawler(client *http.Client) *Crawler {
@@ -67,6 +78,14 @@ func NewCrawler(client *http.Client) *Crawler {
 }
 
 func (c *Crawler) crawlPageLinks(url string) []Node {
+	return c.crawlPage(url, "a")
+}
+
+func (c *Crawler) crawlPageResources(url string) []Node {
+	return c.crawlPage(url, "script", "link", "img")
+}
+
+func (c *Crawler) crawlPage(url string, tags ...string) []Node {
 	pageBody := (*c.client).Get(url)
 	decoder := html.NewTokenizer(bytes.NewBufferString(pageBody))
 	nodeSet := make(map[Node]bool)
@@ -77,7 +96,14 @@ func (c *Crawler) crawlPageLinks(url string) []Node {
 			break
 		}
 		elemTag, _ := decoder.TagName()
-		if t == html.StartTagToken && string(elemTag) == "a" {
+		if t == html.StartTagToken || t == html.SelfClosingTagToken {
+			var matches bool
+			for _, tag := range tags {
+				matches = matches || (tag == string(elemTag))
+			}
+			if !matches {
+				continue
+			}
 			nodeSet[*readNode(string(decoder.Raw()))] = true
 		}
 	}
