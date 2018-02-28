@@ -107,3 +107,9 @@ const htmlMockSource = `
 <!-- Generated in 0.013 seconds -->
 </body></html>
 `
+
+const htmlLoopMockSources = `
+    <a href="lipsum.com">Home</a>
+    <a href="lipsum.com/about">About</a>
+    <a href="lipsum.com/generate">Generate</a>
+`

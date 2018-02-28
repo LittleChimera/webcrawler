@@ -53,16 +53,16 @@ func TestCompareEqualResourceNodes(t *testing.T) {
 	tutil.Assert(t, *node2, *node3)
 }
 
-func mockClient(t *testing.T) (http.Client, *gomock.Controller) {
+func mockClient(t *testing.T, response string) (http.Client, *gomock.Controller) {
 	ctrl := gomock.NewController(t)
 
 	mockClient := mock_http.NewMockClient(ctrl)
-	mockClient.EXPECT().Get("lipsum.com").Return(htmlMockSource)
+	mockClient.EXPECT().Get("lipsum.com").Return(response)
 	return mockClient, ctrl
 }
 
 func TestSinglePageCrawlLinksResults(t *testing.T) {
-	client, ctrl := mockClient(t)
+	client, ctrl := mockClient(t, htmlMockSource)
 	defer ctrl.Finish()
 
 	const host = "lipsum.com"
@@ -80,7 +80,7 @@ func TestSinglePageCrawlLinksResults(t *testing.T) {
 }
 
 func TestSinglePageCrawlResourcesResults(t *testing.T) {
-	client, ctrl := mockClient(t)
+	client, ctrl := mockClient(t, htmlMockSource)
 	defer ctrl.Finish()
 
 	const host = "lipsum.com"
@@ -95,4 +95,25 @@ func TestSinglePageCrawlResourcesResults(t *testing.T) {
 	}
 	tutil.Assert(t, 9, internalResourcesCount)
 	tutil.Assert(t, 1, len(crawledNodes)-internalResourcesCount)
+}
+
+func TestCrawlSiteLoop(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockClient := mock_http.NewMockClient(ctrl)
+	mockClient.EXPECT().Get("lipsum.com").Return(htmlLoopMockSources)
+	mockClient.EXPECT().Get("lipsum.com").Return(htmlLoopMockSources)
+	mockClient.EXPECT().Get("lipsum.com/about").Return(htmlLoopMockSources)
+	mockClient.EXPECT().Get("lipsum.com/about").Return(htmlLoopMockSources)
+	mockClient.EXPECT().Get("lipsum.com/generate").Return(htmlLoopMockSources)
+	mockClient.EXPECT().Get("lipsum.com/generate").Return(htmlLoopMockSources)
+	defer ctrl.Finish()
+
+	const host = "lipsum.com"
+
+	var client http.Client
+	client = mockClient
+	crawler := NewCrawler(&client)
+	crawledPages := crawler.CrawlSite(host)
+
+	tutil.Assert(t, 3, len(crawledPages))
 }

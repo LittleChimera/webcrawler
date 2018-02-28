@@ -2,6 +2,7 @@ package crawler
 
 import (
 	"bytes"
+	"fmt"
 	"net/url"
 	"strings"
 
@@ -37,6 +38,27 @@ type Node struct {
 	Path string
 }
 
+func (n *Node) URL() string {
+	return n.Host + n.Path
+}
+
+func newNode(link string) *Node {
+	if strings.HasPrefix(link, "/") {
+		link = CrawlHostname + link
+	}
+
+	if !strings.HasPrefix(link, "http") {
+		link = "http://" + link
+	}
+
+	u, _ := url.Parse(link)
+
+	return &Node{
+		Host: u.Host,
+		Path: u.Path,
+	}
+}
+
 func readNode(elemBody string) *Node {
 	decoder := html.NewTokenizer(bytes.NewBufferString(elemBody))
 	decoder.Next()
@@ -51,29 +73,18 @@ func readNode(elemBody string) *Node {
 		bodyURL = hrefLink(elemBody)
 	}
 
-	if strings.HasPrefix(bodyURL, "/") {
-		bodyURL = CrawlHostname + bodyURL
-	}
-
-	if !strings.HasPrefix(bodyURL, "http") {
-		bodyURL = "http://" + bodyURL
-	}
-
-	u, _ := url.Parse(bodyURL)
-
-	return &Node{
-		Host: u.Host,
-		Path: u.Path,
-	}
+	return newNode(bodyURL)
 }
 
 type Crawler struct {
-	client *http.Client
+	client       *http.Client
+	visitedPages map[Node]bool
 }
 
 func NewCrawler(client *http.Client) *Crawler {
 	return &Crawler{
-		client: client,
+		client:       client,
+		visitedPages: make(map[Node]bool),
 	}
 }
 
@@ -114,4 +125,36 @@ func (c *Crawler) crawlPage(url string, tags ...string) []Node {
 	}
 
 	return nodes
+}
+
+type Page struct {
+	Path          Node
+	LinkNodes     []Node
+	ResourceNodes []Node
+}
+
+func (c *Crawler) CrawlSite(url string) []Page {
+	return c.CrawlNode(newNode(url))
+}
+
+func (c *Crawler) CrawlNode(pageNode *Node) []Page {
+	fmt.Println(pageNode.URL())
+	var pages []Page
+	if c.visitedPages[*pageNode] {
+		return pages
+	}
+	c.visitedPages[*pageNode] = true
+	pageResources := c.crawlPageResources(pageNode.URL())
+	pageLinks := c.crawlPageLinks(pageNode.URL())
+	for _, linkNode := range pageLinks {
+		pages = append(pages, c.CrawlNode(&linkNode)...)
+	}
+
+	pages = append(pages, Page{
+		Path:          *pageNode,
+		LinkNodes:     pageLinks,
+		ResourceNodes: pageResources,
+	})
+
+	return pages
 }
