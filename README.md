@@ -12,18 +12,26 @@ No attempt has been made to mitigate these issues as these are beyond the scope 
 However, this program should be sufficient if you want construct a simple sitemap of the domain.
 
 
+## Installing
+
+Installing using go get pulls from the master branch and builds runnable binary.
+
+```bash
+go get -u github.com/lukadante/webcrawler
+```
+
 ## Running
 
 To crawl a domain, run the following command:
 
 ```bash
-go run main.go <url to crawl>
+webcrawler <url to crawl>
 ```
 
 E.g.
 
 ```bash
-go run main.go example.com
+webcrawler example.com
 ```
 
 ## Testing
